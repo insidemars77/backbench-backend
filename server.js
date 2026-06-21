@@ -6,14 +6,16 @@ const mongoose = require("mongoose");
 const http = require("http");
 const { Server } = require("socket.io");
 
+const Message = require("./models/Message");
+
 const app = express();
-const PORT = 8080;
+const PORT = process.env.PORT || 8080;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// MongoDB
+// MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
 .then(() => {
     console.log("✅ Mongo Connected");
@@ -37,7 +39,7 @@ const roomSchema = new mongoose.Schema({
 
 const Room = mongoose.model("Room", roomSchema);
 
-// Home
+// Home Route
 app.get("/", (req, res) => {
     res.send("🚀 Backbench Backend Running");
 });
@@ -49,6 +51,13 @@ app.post("/create-room", async (req, res) => {
 
         const { pin } = req.body;
 
+        if (!pin) {
+            return res.status(400).json({
+                success: false,
+                message: "PIN is required"
+            });
+        }
+
         const existingRoom = await Room.findOne({ pin });
 
         if (existingRoom) {
@@ -58,7 +67,9 @@ app.post("/create-room", async (req, res) => {
             });
         }
 
-        const room = await Room.create({ pin });
+        const room = await Room.create({
+            pin
+        });
 
         res.json({
             success: true,
@@ -67,6 +78,8 @@ app.post("/create-room", async (req, res) => {
         });
 
     } catch (err) {
+
+        console.error(err);
 
         res.status(500).json({
             success: false,
@@ -87,10 +100,12 @@ app.post("/join-room", async (req, res) => {
         const room = await Room.findOne({ pin });
 
         if (!room) {
+
             return res.status(404).json({
                 success: false,
                 message: "Room not found"
             });
+
         }
 
         res.json({
@@ -101,6 +116,8 @@ app.post("/join-room", async (req, res) => {
 
     } catch (err) {
 
+        console.error(err);
+
         res.status(500).json({
             success: false,
             message: err.message
@@ -110,9 +127,35 @@ app.post("/join-room", async (req, res) => {
 
 });
 
-// Socket Server
+// Get Messages For Room
+app.get("/messages/:pin", async (req, res) => {
+
+    try {
+
+        const messages = await Message.find({
+            roomPin: req.params.pin
+        }).sort({
+            createdAt: 1
+        });
+
+        res.json(messages);
+
+    } catch (err) {
+
+        console.error(err);
+
+        res.status(500).json({
+            error: err.message
+        });
+
+    }
+
+});
+
+// Create HTTP Server
 const server = http.createServer(app);
 
+// Socket.IO
 const io = new Server(server, {
     cors: {
         origin: "*"
@@ -123,6 +166,7 @@ io.on("connection", (socket) => {
 
     console.log("🟢 Connected:", socket.id);
 
+    // Join Room
     socket.on("join-room", (pin) => {
 
         socket.join(pin);
@@ -133,19 +177,34 @@ io.on("connection", (socket) => {
 
     });
 
-    socket.on("send-message", (data) => {
+    // Send Message
+    socket.on("send-message", async (data) => {
 
-        console.log(
-            `📨 Room ${data.room}: ${data.message}`
-        );
+        try {
 
-        io.to(data.room).emit(
-            "receive-message",
-            data
-        );
+            await Message.create({
+                roomPin: data.room,
+                text: data.message
+            });
+
+            io.to(data.room).emit(
+                "receive-message",
+                data
+            );
+
+            console.log(
+                `📨 Room ${data.room}: ${data.message}`
+            );
+
+        } catch (err) {
+
+            console.error(err);
+
+        }
 
     });
 
+    // Disconnect
     socket.on("disconnect", () => {
 
         console.log(
@@ -157,6 +216,7 @@ io.on("connection", (socket) => {
 
 });
 
+// Start Server
 server.listen(PORT, () => {
 
     console.log(
