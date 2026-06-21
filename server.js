@@ -51,29 +51,25 @@ app.post("/create-room", async (req, res) => {
 
         const { pin } = req.body;
 
-        if (!pin) {
-            return res.status(400).json({
-                success: false,
-                message: "PIN is required"
-            });
-        }
-
-        const existingRoom = await Room.findOne({ pin });
+        const existingRoom =
+            await Room.findOne({ pin });
 
         if (existingRoom) {
-            return res.status(400).json({
+
+            return res.json({
                 success: false,
                 message: "Room already exists"
             });
+
         }
 
-        const room = await Room.create({
-            pin
-        });
+        const room =
+            await Room.create({ pin });
+
+        console.log("Room Created:", room);
 
         res.json({
             success: true,
-            message: "Room created",
             room
         });
 
