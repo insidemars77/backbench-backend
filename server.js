@@ -1,5 +1,6 @@
 require("dotenv").config();
 
+const Room = require("./models/Room");
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
@@ -51,22 +52,13 @@ app.post("/create-room", async (req, res) => {
 
         const { pin } = req.body;
 
-        const existingRoom =
-            await Room.findOne({ pin });
+        console.log("PIN RECEIVED:", pin);
 
-        if (existingRoom) {
+        const room = await Room.create({
+            pin
+        });
 
-            return res.json({
-                success: false,
-                message: "Room already exists"
-            });
-
-        }
-
-        const room =
-            await Room.create({ pin });
-
-        console.log("Room Created:", room);
+        console.log("ROOM CREATED:", room);
 
         res.json({
             success: true,
@@ -75,7 +67,7 @@ app.post("/create-room", async (req, res) => {
 
     } catch (err) {
 
-        console.error(err);
+        console.error("CREATE ROOM ERROR:", err);
 
         res.status(500).json({
             success: false,
