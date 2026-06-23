@@ -33,29 +33,34 @@ app.get("/", (req, res) => {
 // Create Room
 app.post("/create-room", async (req, res) => {
 
+    console.log("🔥 CREATE ROOM ROUTE HIT");
+
     try {
 
         const { pin } = req.body;
 
-        console.log("STEP 1");
-        console.log(pin);
+        console.log("PIN:", pin);
 
-        console.log("STEP 2");
         const room = await Room.create({
             pin
         });
 
-        console.log("STEP 3");
-        console.log(room);
+        console.log("ROOM SAVED:", room);
 
         res.json({
-            success: true
+            success: true,
+            room
         });
 
     } catch (err) {
 
-        console.log("ERROR OCCURRED");
+        console.log("CREATE ROOM ERROR:");
         console.error(err);
+
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
 
     }
 
