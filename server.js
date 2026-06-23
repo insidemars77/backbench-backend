@@ -52,27 +52,25 @@ app.post("/create-room", async (req, res) => {
 
         const { pin } = req.body;
 
-        console.log("PIN RECEIVED:", pin);
+        console.log("STEP 1");
+        console.log(pin);
 
+        console.log("STEP 2");
         const room = await Room.create({
             pin
         });
 
-        console.log("ROOM CREATED:", room);
+        console.log("STEP 3");
+        console.log(room);
 
         res.json({
-            success: true,
-            room
+            success: true
         });
 
     } catch (err) {
 
-        console.error("CREATE ROOM ERROR:", err);
-
-        res.status(500).json({
-            success: false,
-            message: err.message
-        });
+        console.log("ERROR OCCURRED");
+        console.error(err);
 
     }
 
