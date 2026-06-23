@@ -25,21 +25,6 @@ mongoose.connect(process.env.MONGO_URI)
     console.error("❌ Mongo Error:", err);
 });
 
-// Room Schema
-const roomSchema = new mongoose.Schema({
-    pin: {
-        type: String,
-        required: true,
-        unique: true
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    }
-});
-
-const Room = mongoose.model("Room", roomSchema);
-
 // Home Route
 app.get("/", (req, res) => {
     res.send("🚀 Backbench Backend Running");
