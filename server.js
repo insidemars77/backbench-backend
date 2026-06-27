@@ -1,5 +1,6 @@
 require("dotenv").config();
 
+const Category = require("./models/Category");
 const Room = require("./models/Room");
 const express = require("express");
 const cors = require("cors");
@@ -123,6 +124,77 @@ app.get("/messages/:pin", async (req, res) => {
         res.status(500).json({
             error: err.message
         });
+
+    }
+
+});
+
+//create category
+app.post("/create-category", async (req, res) => {
+
+    try {
+
+        const { roomPin, name } = req.body;
+
+        if (!roomPin || !name) {
+            return res.json({
+                success: false,
+                message: "Missing data"
+            });
+        }
+
+        const exists = await Category.findOne({
+            roomPin,
+            name
+        });
+
+        if (exists) {
+            return res.json({
+                success: false,
+                message: "Category already exists"
+            });
+        }
+
+        await Category.create({
+            roomPin,
+            name
+        });
+
+        res.json({
+            success: true
+        });
+
+    } catch (err) {
+
+        console.log(err);
+
+        res.json({
+            success: false,
+            message: "Server Error"
+        });
+
+    }
+
+});
+
+//get category
+app.get("/categories/:roomPin", async (req, res) => {
+
+    try {
+
+        const categories = await Category.find({
+            roomPin: req.params.roomPin
+        }).sort({
+            createdAt: 1
+        });
+
+        res.json(categories);
+
+    } catch (err) {
+
+        console.log(err);
+
+        res.json([]);
 
     }
 
