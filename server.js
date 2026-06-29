@@ -1,5 +1,8 @@
 require("dotenv").config();
 
+const supabase = require("./models/supabase");
+const File = require("./models/File");
+const multer = require("multer");
 const Category = require("./models/Category");
 const Room = require("./models/Room");
 const express = require("express");
@@ -16,6 +19,10 @@ const PORT = process.env.PORT || 8080;
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+const upload = multer({
+    storage: multer.memoryStorage()
+});
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
@@ -197,6 +204,89 @@ app.get("/categories/:roomPin", async (req, res) => {
         res.json([]);
 
     }
+
+});
+
+app.post("/upload", upload.single("file"), async (req, res) => {
+
+    const file = req.file;
+
+    const fileName = Date.now() + "-" + file.originalname;
+
+    const { data, error } = await supabase.storage
+        .from("backbench")
+        .upload(fileName, file.buffer, {
+            contentType: file.mimetype
+        });
+
+    if (error) {
+        return res.status(500).json(error);
+    }
+
+    await File.create({
+        roomPin: req.body.roomPin,
+        category: req.body.category,
+        fileName: file.originalname,
+        supabasePath: data.path,
+        mimeType: file.mimetype,
+        size: file.size
+    });
+
+    res.json({
+        success: true
+    });
+
+});
+
+app.get("/files/:roomPin/:category", async (req, res) => {
+
+    console.log("FILES ROUTE HIT");
+    console.log(req.params);
+
+    try {
+
+        const files = await File.find({
+
+            roomPin: req.params.roomPin,
+            category: req.params.category
+
+        }).sort({
+
+            createdAt: -1
+
+        });
+
+        res.json(files);
+
+    } catch (err) {
+
+        console.log(err);
+
+        res.status(500).json({
+            success: false
+        });
+
+    }
+
+});
+
+app.get("/download/:id", async (req, res) => {
+
+    const file = await File.findById(req.params.id);
+
+    if (!file) {
+        return res.status(404).json({
+            success:false
+        });
+    }
+
+    const { data } = supabase.storage
+        .from("backbench")
+        .getPublicUrl(file.supabasePath);
+
+    res.json({
+        url: data.publicUrl
+    });
 
 });
 
