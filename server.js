@@ -1,6 +1,6 @@
 require("dotenv").config();
 
-const supabase = require("./models/supabase");
+const supabase = require("./supabase");
 const File = require("./models/File");
 const multer = require("multer");
 const Category = require("./models/Category");
